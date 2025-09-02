@@ -1,0 +1,16 @@
+{
+  "appName": "Experiential Learning Portal",
+  "theme": {
+    "primaryColor": "#0070f3",
+    "secondaryColor": "#333"
+  },
+  "database": {
+    "enableConnectionDetails": false
+  },
+  "email": {
+    "smtpHost": "smtp.example.com",
+    "smtpPort": 587,
+    "smtpUser": "your-email@example.com",
+    "smtpPassword": "your-password"
+  }
+}

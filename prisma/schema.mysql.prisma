@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String   @id @default(dbgenerated("uuid()"))
+  email          String   @unique
+  password_hash  String
+  first_name     String
+  last_name      String
+  role           String
+  is_active      Boolean  @default(true)
+  student_id     String?  @unique
+  department     String?
+  year_of_study  Int?
+  phone          String?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  events Event[] @relation(fields: [id], references: [created_by])
+
+  @@map("users")
+}
+
+model Event {
+  id                  String   @id @default(dbgenerated("uuid()"))
+  name                String
+  description         String
+  academic_year       String
+  start_date          DateTime
+  end_date            DateTime
+  registration_deadline DateTime
+  created_by          String
+  is_active           Boolean  @default(true)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  phases EventPhase[]
+
+  user User @relation(fields: [created_by], references: [id])
+  project_registrations ProjectRegistration[]
+
+  @@map("events")
+}
+
+model EventPhase {
+  id String @id @default(dbgenerated("uuid()"))
+  event_id String
+  phase_number Int
+  name String
+  description String
+  requirements String
+  allowed_file_types String
+  max_files Int
+  deadline_days Int
+
+  event Event @relation(fields: [event_id], references: [id])
+
+  @@map("event_phases")
+}
+
+model ProjectRegistration {
+  id String @id @default(dbgenerated("uuid()"))
+  event_id String
+  project_title String
+  student_id String
+  submission_date DateTime
+
+  event Event @relation(fields: [event_id], references: [id])
+
+  @@map("project_registrations")
+}
