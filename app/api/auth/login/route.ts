@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { query } from '@/lib/database/connection';
+import { prisma } from '@/lib/database/connection';
 import { loginRateLimiter } from '@/lib/security/rate-limiter';
 import { createSecureResponse } from '@/lib/security/headers';
 import { emailSchema } from '@/lib/security/validation';
@@ -38,20 +38,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user from database
-    const result = await query(
-      'SELECT id, email, password_hash, first_name, last_name, role, is_active FROM users WHERE email = $1',
-      [email.toLowerCase()]
-    );
+    // Get user from database via Prisma
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+      select: {
+        id: true,
+        email: true,
+        password_hash: true,
+        first_name: true,
+        last_name: true,
+        role: true,
+        is_active: true,
+      },
+    });
 
-    if (result.rows.length === 0) {
+    if (!user) {
       return createSecureResponse(
         { error: 'Invalid credentials' },
         401
       );
     }
-
-    const user = result.rows[0];
 
     if (!user.is_active) {
       return createSecureResponse(

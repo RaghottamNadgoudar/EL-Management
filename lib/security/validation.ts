@@ -29,10 +29,34 @@ export const userRegistrationSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(50),
   lastName: z.string().min(1, 'Last name is required').max(50),
   role: z.enum(['student', 'evaluator', 'admin', 'super_admin']),
-  studentId: z.string().optional(),
-  department: z.string().optional(),
-  yearOfStudy: z.number().int().min(1).max(4).optional(),
-  phone: z.string().optional(),
+  studentId: z.string().optional().nullable(),
+  department: z.string().optional().nullable(),
+  yearOfStudy: z.number().int().min(1).max(4).optional().nullable(),
+  phone: z.string().optional().nullable(),
+}).superRefine((data, ctx) => {
+    if (data.role === 'student') {
+        if (!data.studentId) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Student ID is required',
+                path: ['studentId'],
+            });
+        }
+        if (!data.department) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Department is required',
+                path: ['department'],
+            });
+        }
+        if (!data.yearOfStudy) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Year of study is required',
+                path: ['yearOfStudy'],
+            });
+        }
+    }
 });
 
 // File upload validation

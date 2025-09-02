@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authenticateRequest } from '@/lib/auth/middleware';
-import { query } from '@/lib/database/connection';
+import { prisma } from '@/lib/database/connection';
 import { PlagiarismChecker } from '@/lib/services/plagiarism';
 
 export async function POST(request: NextRequest) {
@@ -18,23 +18,22 @@ export async function POST(request: NextRequest) {
     } = await request.json();
 
     // Check if user owns this registration
-    const registrationCheck = await query(
-      'SELECT id FROM project_registrations WHERE id = $1 AND student_id = $2',
-      [registrationId, user.id]
-    );
+    const registrationCheck = await prisma.$queryRaw<any[]>`
+      SELECT id FROM project_registrations WHERE id = ${registrationId} AND student_id = ${user.id}
+    `;
 
-    if (registrationCheck.rows.length === 0) {
+    if (registrationCheck.length === 0) {
       return NextResponse.json({ error: 'Invalid registration' }, { status: 403 });
     }
 
     // Create submission
-    const submissionResult = await query(`
+    const submissionInsert = await prisma.$queryRaw<any[]>`
       INSERT INTO project_submissions (registration_id, phase_number, submission_data, status)
-      VALUES ($1, $2, $3, 'submitted')
+      VALUES (${registrationId}, ${phaseNumber}, ${JSON.stringify(submissionData)}, 'submitted')
       RETURNING *
-    `, [registrationId, phaseNumber, JSON.stringify(submissionData)]);
+    `;
 
-    const submission = submissionResult.rows[0];
+    const submission = submissionInsert[0];
 
     // Start plagiarism check in background
     if (submissionData.abstract || submissionData.description) {
@@ -44,14 +43,10 @@ export async function POST(request: NextRequest) {
       // Run plagiarism check asynchronously
       plagiarismChecker.performFullCheck(textToCheck, submission.id)
         .then(async (plagiarismResult) => {
-          await query(`
+          await prisma.$executeRaw`
             INSERT INTO plagiarism_checks (submission_id, check_type, similarity_percentage, matched_sources, status)
-            VALUES ($1, 'comprehensive', $2, $3, 'completed')
-          `, [
-            submission.id,
-            plagiarismResult.overallSimilarity,
-            JSON.stringify(plagiarismResult.results)
-          ]);
+            VALUES (${submission.id}, 'comprehensive', ${plagiarismResult.overallSimilarity}, ${JSON.stringify(plagiarismResult.results)}, 'completed')
+          `;
         })
         .catch(error => console.error('Plagiarism check failed:', error));
     }
@@ -99,7 +94,7 @@ export async function GET(request: NextRequest) {
       params.push(parseInt(phaseNumber));
     }
 
-    const result = await query(`
+    const submissions = await prisma.$queryRawUnsafe<any[]>(`
       SELECT 
         ps.*,
         pr.project_title,
@@ -114,9 +109,9 @@ export async function GET(request: NextRequest) {
       JOIN event_phases ep ON e.id = ep.event_id AND ps.phase_number = ep.phase_number
       ${whereClause}
       ORDER BY ps.created_at DESC
-    `, params);
+    `, ...params);
 
-    return NextResponse.json({ submissions: result.rows });
+    return NextResponse.json({ submissions });
   } catch (error) {
     console.error('Submissions fetch error:', error);
     return NextResponse.json(

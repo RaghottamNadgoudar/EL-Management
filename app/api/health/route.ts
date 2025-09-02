@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPool } from '@/lib/database/connection';
+import { prisma } from '@/lib/database/connection';
 
 export async function GET(request: NextRequest) {
   const healthCheck = {
@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
   // Check database connection
   try {
     if (process.env.DATABASE_ENABLED === 'true') {
-      const pool = getPool();
-      await pool.query('SELECT 1');
+      // Simple ping using Prisma
+      await prisma.$queryRaw`SELECT 1`;
       healthCheck.services.database = 'healthy';
     } else {
       healthCheck.services.database = 'disabled';

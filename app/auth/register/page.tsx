@@ -57,8 +57,33 @@ export default function RegisterPage() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    // Password complexity validation to match backend requirements
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      setLoading(false);
+      return;
+    }
+
+    if (!/[A-Z]/.test(formData.password)) {
+      setError('Password must contain at least one uppercase letter');
+      setLoading(false);
+      return;
+    }
+
+    if (!/[a-z]/.test(formData.password)) {
+      setError('Password must contain at least one lowercase letter');
+      setLoading(false);
+      return;
+    }
+
+    if (!/\d/.test(formData.password)) {
+      setError('Password must contain at least one number');
+      setLoading(false);
+      return;
+    }
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
+      setError('Password must contain at least one special character');
       setLoading(false);
       return;
     }
@@ -274,6 +299,7 @@ export default function RegisterPage() {
                     onChange={(e) => handleInputChange('password', e.target.value)}
                     className="pl-10"
                     required
+                    autoComplete="new-password"
                   />
                 </div>
               </div>
@@ -290,6 +316,7 @@ export default function RegisterPage() {
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                     className="pl-10"
                     required
+                    autoComplete="new-password"
                   />
                 </div>
               </div>

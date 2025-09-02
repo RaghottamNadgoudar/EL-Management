@@ -1,43 +1,26 @@
-import { Pool } from 'pg';
-import { appConfig } from '../config';
+import { PrismaClient } from '@/lib/generated/prisma';
 
-let pool: Pool | null = null;
+declare global {
+  // allow global `var` declarations
+  // eslint-disable-next-line no-var
+  var prisma: PrismaClient | undefined;
+}
 
-export function getPool(): Pool {
-  if (!pool) {
-    pool = new Pool({
-      host: appConfig.database.host,
-      port: appConfig.database.port,
-      database: appConfig.database.name,
-      user: appConfig.database.user,
-      password: appConfig.database.password,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+export const prisma = 
+    global.prisma ||
+    new PrismaClient({
+        log: ['query', 'info', 'warn', 'error'],
     });
-  }
-  return pool;
+
+if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
+
+export async function checkDbConnection() {
+    try {
+        await prisma.$connect();
+        console.log('✅ Database connection successful');
+    } catch (error) {
+        console.error('❌ Database connection failed:', error);
+    }
 }
 
-export async function query(text: string, params?: any[]) {
-  const pool = getPool();
-  const start = Date.now();
-  
-  try {
-    const res = await pool.query(text, params);
-    const duration = Date.now() - start;
-    console.log('Executed query', { text, duration, rows: res.rowCount });
-    return res;
-  } catch (error) {
-    console.error('Database query error:', error);
-    throw error;
-  }
-}
-
-export async function closePool() {
-  if (pool) {
-    await pool.end();
-    pool = null;
-  }
-}
+checkDbConnection();

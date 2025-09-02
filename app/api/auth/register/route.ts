@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcrypt';
 import { sendEmail } from '@/lib/services/mailing';
-import { PrismaClient } from '@/lib/generated/prisma';
+import { prisma } from '@/lib/database/connection';
 import { createAuditLog } from '@/lib/services/auditLog';
 import { createSecureResponse } from '@/lib/security/headers';
 import { userRegistrationSchema } from '@/lib/security/validation';
 
-const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,10 +67,10 @@ export async function POST(request: NextRequest) {
         first_name: firstName,
         last_name: lastName,
         role: role,
-        student_id: studentId || null,
-        department: department || null,
-        year_of_study: yearOfStudy || null,
-        phone: phone || null,
+        student_id: studentId,
+        department: department,
+        year_of_study: yearOfStudy,
+        phone: phone,
       },
     });
 
